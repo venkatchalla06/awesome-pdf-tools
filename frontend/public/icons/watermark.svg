@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect x="8" y="8" width="48" height="48" rx="3" fill="#4f46e5" opacity=".1"/>
+  <rect x="8" y="8" width="48" height="48" rx="3" stroke="#4f46e5" stroke-width="2.5"/>
+  <text x="32" y="38" text-anchor="middle" fill="#4f46e5" font-size="13" font-family="sans-serif" font-weight="bold" opacity=".4" transform="rotate(-30 32 32)">DRAFT</text>
+</svg>
