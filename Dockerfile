@@ -2,25 +2,27 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ghostscript \
     tesseract-ocr \
     tesseract-ocr-eng \
+    libmagic1 \
     poppler-utils \
-    clamav \
-    clamav-daemon \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Application code
 COPY . .
 
-# Create non-root user
-RUN useradd -m -u 1000 pdfuser && chown -R pdfuser:pdfuser /app
+# Non-root user
+RUN useradd -m -u 1000 pdfuser \
+    && mkdir -p /app/uploads \
+    && chown -R pdfuser:pdfuser /app
 USER pdfuser
 
 EXPOSE 8000
