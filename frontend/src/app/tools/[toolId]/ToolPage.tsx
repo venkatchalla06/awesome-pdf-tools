@@ -74,7 +74,7 @@ export function ToolPage({ tool }: Props) {
       const single = ["split","compress","rotate","watermark","protect","unlock",
                       "page-numbers","ocr","pdf-to-jpg","pdf-to-word","word-to-pdf","summarize","translate",
                       "remove-pages","extract-pages","organize","repair","crop","redact","pdf-to-pdfa",
-                      "pptx-to-pdf","xlsx-to-pdf","html-to-pdf"];
+                      "pptx-to-pdf","xlsx-to-pdf","html-to-pdf","pdf-to-pptx"];
       if (single.includes(tool.id)) body.input_key = files[0].s3Key;
       else body.input_keys = files.map((f) => f.s3Key);
       const result = await api.post(`/tools/${tool.id}`, body);

@@ -545,6 +545,26 @@ async def xlsx_to_pdf(
     return job
 
 
+# ── PDF → PowerPoint ───────────────────────────────────────────────────────────
+
+class PdfToPptxRequest(BaseModel):
+    input_key: str
+
+
+@router.post("/pdf-to-pptx", response_model=JobResponse, status_code=202)
+async def pdf_to_pptx(
+    body: PdfToPptxRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
+):
+    job = make_job(ToolType.PDF_TO_PPTX, [body.input_key], {},
+                   current_user.id if current_user else None)
+    db.add(job); await db.commit(); await db.refresh(job)
+    from app.workers.tasks.convert import pdf_to_pptx_task
+    pdf_to_pptx_task.apply_async(args=[str(job.id)], task_id=str(job.id))
+    return job
+
+
 # ── HTML → PDF ─────────────────────────────────────────────────────────────────
 
 class HtmlToPdfRequest(BaseModel):

@@ -163,6 +163,16 @@ export const TOOLS: Tool[] = [
     tabs: ["all", "convert-from"],
     accept: { "application/pdf": [".pdf"] },
   },
+  {
+    id: "pdf-to-pptx",
+    name: "PDF to PowerPoint",
+    description: "Convert PDF pages to editable PowerPoint slides",
+    icon: "/icons/pdf-to-pptx.svg",
+    color: "text-[#8a3ffc]",
+    bgLight: "bg-[#f6f2ff]",
+    tabs: ["all", "convert-from"],
+    accept: { "application/pdf": [".pdf"] },
+  },
 
   // ── Convert to PDF ─────────────────────────────────────────────────────────
   {

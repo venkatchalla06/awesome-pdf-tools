@@ -41,6 +41,7 @@ class ToolType(str, enum.Enum):
     REDACT = "redact"
     PDF_TO_PDFA = "pdf_to_pdfa"
     ORGANIZE = "organize"
+    PDF_TO_PPTX = "pdf_to_pptx"
 
 
 class Job(Base):

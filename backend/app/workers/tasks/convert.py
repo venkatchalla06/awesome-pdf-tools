@@ -356,3 +356,66 @@ def html_to_pdf_task(self, job_id: str):
         session.commit()
 
     return output_key
+
+
+# ── PDF → PowerPoint ───────────────────────────────────────────────────────────
+
+@celery_app.task(
+    bind=True, base=PDFBaseTask,
+    name="app.workers.tasks.convert.pdf_to_pptx_task",
+    max_retries=1, soft_time_limit=300,
+)
+def pdf_to_pptx_task(self, job_id: str):
+    self.update_job(job_id, status=JobStatus.PROCESSING, progress=5)
+
+    with SyncSession() as session:
+        job = session.get(Job, job_id)
+        input_key = job.input_keys[0]
+        options = dict(job.options)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "input.pdf")
+        storage.download_to_temp(input_key, input_path)
+
+        from pptx import Presentation
+
+        doc = fitz.open(input_path)
+        total = len(doc)
+        prs = Presentation()
+
+        for i, page in enumerate(doc):
+            mat = fitz.Matrix(150 / 72, 150 / 72)
+            pix = page.get_pixmap(matrix=mat, alpha=False)
+            img_path = os.path.join(tmpdir, f"slide_{i:04d}.jpg")
+            pix.save(img_path)
+
+            slide_w = int(page.rect.width * 914400 / 72)
+            slide_h = int(page.rect.height * 914400 / 72)
+            prs.slide_width = slide_w
+            prs.slide_height = slide_h
+
+            slide = prs.slides.add_slide(prs.slide_layouts[6])
+            slide.shapes.add_picture(img_path, 0, 0, slide_w, slide_h)
+
+            self.update_job(job_id, progress=5 + int((i + 1) / total * 85))
+
+        doc.close()
+
+        output_path = os.path.join(tmpdir, "converted.pptx")
+        prs.save(output_path)
+
+        output_key = f"results/{job_id}/converted.pptx"
+        storage.upload_from_temp(
+            output_path, output_key,
+            content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        )
+
+    with SyncSession() as session:
+        job = session.get(Job, job_id)
+        job.status = JobStatus.COMPLETED
+        job.output_key = output_key
+        job.progress = 100
+        job.options = {**options, "output_filename": "converted.pptx"}
+        session.commit()
+
+    return output_key
