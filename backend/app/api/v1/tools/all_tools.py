@@ -270,6 +270,7 @@ async def jpg_to_pdf(
 
 class PdfToWordRequest(BaseModel):
     input_key: str
+    word_version: str = Field("2007", description="2003 | 2007 | 2010 | 2013 | 2016 | 2019 | 365")
 
 
 @router.post("/pdf-to-word", response_model=JobResponse, status_code=202)
@@ -278,7 +279,7 @@ async def pdf_to_word(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user_optional),
 ):
-    job = make_job(ToolType.PDF_TO_WORD, [body.input_key], {},
+    job = make_job(ToolType.PDF_TO_WORD, [body.input_key], {"word_version": body.word_version},
                    current_user.id if current_user else None)
     db.add(job); await db.commit(); await db.refresh(job)
     from app.workers.tasks.convert import pdf_to_word_task

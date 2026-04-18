@@ -165,11 +165,21 @@ def jpg_to_pdf_task(self, job_id: str):
 
 
 # ── PDF → Word ─────────────────────────────────────────────────────────────
+#
+# Supported Word versions via the `word_version` option:
+#   "2003"        → .doc  (Word 97–2003 binary format, via LibreOffice)
+#   "2007" | ""   → .docx (Office Open XML, Word 2007+)  ← default
+#   "2010"–"365"  → .docx (same Open XML format, fully compatible)
+#
+# Strategy:
+#   1. Always convert PDF → DOCX first using pdf2docx (best fidelity).
+#   2. If .doc is requested, pipe the DOCX through LibreOffice headless
+#      to produce a binary .doc file.
 
 @celery_app.task(
     bind=True, base=PDFBaseTask,
     name="app.workers.tasks.convert.pdf_to_word_task",
-    max_retries=1, soft_time_limit=300,
+    max_retries=1, soft_time_limit=360,
 )
 def pdf_to_word_task(self, job_id: str):
     self.update_job(job_id, status=JobStatus.PROCESSING, progress=10)
@@ -179,32 +189,48 @@ def pdf_to_word_task(self, job_id: str):
         input_key = job.input_keys[0]
         options = dict(job.options)
 
+    # Determine output format from requested Word version
+    word_version = str(options.get("word_version", "2007")).strip()
+    use_doc_format = word_version == "2003"   # only 2003 needs legacy .doc
+    output_ext = "doc" if use_doc_format else "docx"
+    output_filename = f"converted.{output_ext}"
+    content_type = (
+        "application/msword"
+        if use_doc_format
+        else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
     with tempfile.TemporaryDirectory() as tmpdir:
         input_path = os.path.join(tmpdir, "input.pdf")
-        output_path = os.path.join(tmpdir, "converted.docx")
+        docx_path  = os.path.join(tmpdir, "converted.docx")
         storage.download_to_temp(input_key, input_path)
-        self.update_job(job_id, progress=30)
+        self.update_job(job_id, progress=20)
 
-        # pdf2docx handles PDF→DOCX far better than LibreOffice
+        # Step 1 — PDF → DOCX (pdf2docx gives best layout fidelity)
         from pdf2docx import Converter
         cv = Converter(input_path)
-        cv.convert(output_path, start=0, end=None)
+        cv.convert(docx_path, start=0, end=None)
         cv.close()
+        self.update_job(job_id, progress=60)
+
+        # Step 2 — DOCX → DOC via LibreOffice (Word 2003 only)
+        if use_doc_format:
+            doc_path = libreoffice_convert(docx_path, tmpdir, fmt="doc")
+            final_path = doc_path
+        else:
+            final_path = docx_path
 
         self.update_job(job_id, progress=85)
 
-        output_key = f"results/{job_id}/converted.docx"
-        storage.upload_from_temp(
-            output_path, output_key,
-            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        )
+        output_key = f"results/{job_id}/{output_filename}"
+        storage.upload_from_temp(final_path, output_key, content_type=content_type)
 
     with SyncSession() as session:
         job = session.get(Job, job_id)
         job.status = JobStatus.COMPLETED
         job.output_key = output_key
         job.progress = 100
-        job.options = {**options, "output_filename": "converted.docx"}
+        job.options = {**options, "output_filename": output_filename}
         session.commit()
 
     return output_key
