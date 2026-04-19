@@ -566,6 +566,97 @@ async def pdf_to_pptx(
     return job
 
 
+# ── PDF → Excel ────────────────────────────────────────────────────────────────
+
+class PdfToXlsxRequest(BaseModel):
+    input_key: str
+
+
+@router.post("/pdf-to-xlsx", response_model=JobResponse, status_code=202)
+async def pdf_to_xlsx(
+    body: PdfToXlsxRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
+):
+    job = make_job(ToolType.PDF_TO_XLSX, [body.input_key], {},
+                   current_user.id if current_user else None)
+    db.add(job); await db.commit(); await db.refresh(job)
+    from app.workers.tasks.convert import pdf_to_xlsx_task
+    pdf_to_xlsx_task.apply_async(args=[str(job.id)], task_id=str(job.id))
+    return job
+
+
+# ── Sign PDF ────────────────────────────────────────────────────────────────────
+
+class SignPdfRequest(BaseModel):
+    input_key: str
+    signature_key: Optional[str] = None
+    page: int = Field(1, ge=1, description="Page number to sign (1-based)")
+    x: float = Field(60.0, ge=0, le=100, description="X position as % of page width")
+    y: float = Field(85.0, ge=0, le=100, description="Y position as % of page height")
+    width: float = Field(25.0, ge=1, le=80, description="Width as % of page width")
+    height: float = Field(8.0, ge=1, le=50, description="Height as % of page height")
+
+
+@router.post("/sign-pdf", response_model=JobResponse, status_code=202)
+async def sign_pdf(
+    body: SignPdfRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
+):
+    input_keys = [body.input_key]
+    if body.signature_key:
+        input_keys.append(body.signature_key)
+    opts = {"page": body.page, "x": body.x, "y": body.y, "width": body.width, "height": body.height}
+    job = make_job(ToolType.SIGN_PDF, input_keys, opts,
+                   current_user.id if current_user else None)
+    db.add(job); await db.commit(); await db.refresh(job)
+    from app.workers.tasks.convert import sign_pdf_task
+    sign_pdf_task.apply_async(args=[str(job.id)], task_id=str(job.id))
+    return job
+
+
+# ── Fill PDF Form ───────────────────────────────────────────────────────────────
+
+class FillFormRequest(BaseModel):
+    input_key: str
+    fields: dict = Field(default_factory=dict, description='{"FieldName": "value"}')
+
+
+@router.post("/fill-form", response_model=JobResponse, status_code=202)
+async def fill_form(
+    body: FillFormRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
+):
+    job = make_job(ToolType.FILL_FORM, [body.input_key], {"fields": body.fields},
+                   current_user.id if current_user else None)
+    db.add(job); await db.commit(); await db.refresh(job)
+    from app.workers.tasks.convert import fill_form_task
+    fill_form_task.apply_async(args=[str(job.id)], task_id=str(job.id))
+    return job
+
+
+# ── PDF → Markdown ──────────────────────────────────────────────────────────────
+
+class PdfToMarkdownRequest(BaseModel):
+    input_key: str
+
+
+@router.post("/pdf-to-markdown", response_model=JobResponse, status_code=202)
+async def pdf_to_markdown(
+    body: PdfToMarkdownRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
+):
+    job = make_job(ToolType.PDF_TO_MARKDOWN, [body.input_key], {},
+                   current_user.id if current_user else None)
+    db.add(job); await db.commit(); await db.refresh(job)
+    from app.workers.tasks.convert import pdf_to_markdown_task
+    pdf_to_markdown_task.apply_async(args=[str(job.id)], task_id=str(job.id))
+    return job
+
+
 # ── HTML → PDF ─────────────────────────────────────────────────────────────────
 
 class HtmlToPdfRequest(BaseModel):

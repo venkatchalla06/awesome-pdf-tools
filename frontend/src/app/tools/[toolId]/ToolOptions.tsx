@@ -224,5 +224,65 @@ export function ToolOptions({ toolId, options, onChange }: Props) {
     </Card>
   );
 
+  if (toolId === "sign-pdf") return (
+    <Card>
+      <p className="text-xs text-[#9aa0a6] -mt-1">Upload your PDF first, then optionally add a signature image below.</p>
+      <div>
+        <label className={labelCls}>Page to sign</label>
+        <input type="number" min={1} defaultValue={1} className={inputCls}
+          onChange={(e) => set("page", parseInt(e.target.value) || 1)} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <div className="flex justify-between mb-1">
+            <label className={labelCls + " mb-0"}>X position</label>
+            <span className="text-sm text-[#1a73e8] font-medium">{Number(options.x ?? 60)}%</span>
+          </div>
+          <input type="range" min={0} max={90} defaultValue={60} className="w-full"
+            onChange={(e) => set("x", parseInt(e.target.value))} />
+        </div>
+        <div>
+          <div className="flex justify-between mb-1">
+            <label className={labelCls + " mb-0"}>Y position</label>
+            <span className="text-sm text-[#1a73e8] font-medium">{Number(options.y ?? 85)}%</span>
+          </div>
+          <input type="range" min={0} max={90} defaultValue={85} className="w-full"
+            onChange={(e) => set("y", parseInt(e.target.value))} />
+        </div>
+      </div>
+      <p className="text-xs text-[#9aa0a6]">No signature image? A "Signed" stamp will be placed at that position.</p>
+    </Card>
+  );
+
+  if (toolId === "fill-form") return (
+    <Card>
+      <label className={labelCls}>Form fields (JSON)</label>
+      <textarea
+        className={`${inputCls} h-32 resize-none font-mono text-xs pt-3`}
+        placeholder={'{\n  "FirstName": "John",\n  "LastName": "Doe",\n  "Email": "john@example.com"\n}'}
+        onChange={(e) => {
+          try {
+            set("fields", JSON.parse(e.target.value));
+          } catch {
+            // ignore invalid JSON while typing
+          }
+        }}
+      />
+      <p className="mt-1.5 text-xs text-[#9aa0a6]">Enter field names exactly as they appear in the PDF form</p>
+    </Card>
+  );
+
+  if (toolId === "pdf-to-word") return (
+    <Card>
+      <label className={labelCls}>Word version</label>
+      <SegmentControl
+        keys={["2003","2007","2010","2013","2016","2019","365"]}
+        active={options.word_version ?? "2007"}
+        onSelect={(v) => set("word_version", v)}
+      />
+      <p className="text-xs text-[#9aa0a6]">Word 2003 produces a legacy .doc file; all others produce .docx</p>
+    </Card>
+  );
+
   return null;
 }

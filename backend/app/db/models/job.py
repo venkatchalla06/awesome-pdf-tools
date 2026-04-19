@@ -42,6 +42,10 @@ class ToolType(str, enum.Enum):
     PDF_TO_PDFA = "pdf_to_pdfa"
     ORGANIZE = "organize"
     PDF_TO_PPTX = "pdf_to_pptx"
+    PDF_TO_XLSX = "pdf_to_xlsx"
+    SIGN_PDF = "sign_pdf"
+    FILL_FORM = "fill_form"
+    PDF_TO_MARKDOWN = "pdf_to_markdown"
 
 
 class Job(Base):

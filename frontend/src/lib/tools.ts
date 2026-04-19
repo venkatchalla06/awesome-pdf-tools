@@ -173,6 +173,26 @@ export const TOOLS: Tool[] = [
     tabs: ["all", "convert-from"],
     accept: { "application/pdf": [".pdf"] },
   },
+  {
+    id: "pdf-to-xlsx",
+    name: "PDF to Excel",
+    description: "Extract tables and data from PDF into Excel",
+    icon: "/icons/pdf-to-xlsx.svg",
+    color: "text-[#8a3ffc]",
+    bgLight: "bg-[#f6f2ff]",
+    tabs: ["all", "convert-from"],
+    accept: { "application/pdf": [".pdf"] },
+  },
+  {
+    id: "pdf-to-markdown",
+    name: "PDF to Markdown",
+    description: "Convert PDF content to clean Markdown format",
+    icon: "/icons/pdf-to-markdown.svg",
+    color: "text-[#8a3ffc]",
+    bgLight: "bg-[#f6f2ff]",
+    tabs: ["all", "convert-from"],
+    accept: { "application/pdf": [".pdf"] },
+  },
 
   // ── Convert to PDF ─────────────────────────────────────────────────────────
   {
@@ -265,6 +285,26 @@ export const TOOLS: Tool[] = [
     color: "text-[#005d5d]",
     bgLight: "bg-[#d9fbfb]",
     tabs: ["all", "edit", "security"],
+    accept: { "application/pdf": [".pdf"] },
+  },
+  {
+    id: "sign-pdf",
+    name: "Sign PDF",
+    description: "Add your signature image to a PDF document",
+    icon: "/icons/sign-pdf.svg",
+    color: "text-[#005d5d]",
+    bgLight: "bg-[#d9fbfb]",
+    tabs: ["all", "edit", "security"],
+    accept: { "application/pdf": [".pdf"] },
+  },
+  {
+    id: "fill-form",
+    name: "Fill PDF Form",
+    description: "Fill interactive form fields in a PDF",
+    icon: "/icons/fill-form.svg",
+    color: "text-[#005d5d]",
+    bgLight: "bg-[#d9fbfb]",
+    tabs: ["all", "edit"],
     accept: { "application/pdf": [".pdf"] },
   },
 

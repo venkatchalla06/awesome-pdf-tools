@@ -445,3 +445,277 @@ def pdf_to_pptx_task(self, job_id: str):
         session.commit()
 
     return output_key
+
+
+# ── PDF → Excel ────────────────────────────────────────────────────────────────
+
+@celery_app.task(
+    bind=True, base=PDFBaseTask,
+    name="app.workers.tasks.convert.pdf_to_xlsx_task",
+    max_retries=1, soft_time_limit=300,
+)
+def pdf_to_xlsx_task(self, job_id: str):
+    self.update_job(job_id, status=JobStatus.PROCESSING, progress=5)
+
+    with SyncSession() as session:
+        job = session.get(Job, job_id)
+        input_key = job.input_keys[0]
+        options = dict(job.options)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "input.pdf")
+        storage.download_to_temp(input_key, input_path)
+        self.update_job(job_id, progress=15)
+
+        import pdfplumber
+        import openpyxl
+
+        wb = openpyxl.Workbook()
+        wb.remove(wb.active)
+
+        with pdfplumber.open(input_path) as pdf:
+            total = len(pdf.pages)
+            for i, page in enumerate(pdf.pages):
+                ws = wb.create_sheet(title=f"Page {i + 1}")
+                tables = page.extract_tables()
+                if tables:
+                    row_num = 1
+                    for table in tables:
+                        for row in table:
+                            for col_idx, cell in enumerate(row, start=1):
+                                ws.cell(row=row_num, column=col_idx, value=cell or "")
+                            row_num += 1
+                        row_num += 1
+                else:
+                    text = page.extract_text() or ""
+                    for row_num, line in enumerate(text.split("\n"), start=1):
+                        ws.cell(row=row_num, column=1, value=line)
+                self.update_job(job_id, progress=15 + int((i + 1) / total * 70))
+
+        output_path = os.path.join(tmpdir, "converted.xlsx")
+        wb.save(output_path)
+
+        output_key = f"results/{job_id}/converted.xlsx"
+        storage.upload_from_temp(
+            output_path, output_key,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+    with SyncSession() as session:
+        job = session.get(Job, job_id)
+        job.status = JobStatus.COMPLETED
+        job.output_key = output_key
+        job.progress = 100
+        job.options = {**options, "output_filename": "converted.xlsx"}
+        session.commit()
+
+    return output_key
+
+
+# ── Sign PDF ───────────────────────────────────────────────────────────────────
+# input_keys[0] = PDF, input_keys[1] = signature image (optional)
+# options: page (1-based), x%, y%, width%, height% of page dimensions
+
+@celery_app.task(
+    bind=True, base=PDFBaseTask,
+    name="app.workers.tasks.convert.sign_pdf_task",
+    max_retries=1, soft_time_limit=120,
+)
+def sign_pdf_task(self, job_id: str):
+    self.update_job(job_id, status=JobStatus.PROCESSING, progress=10)
+
+    with SyncSession() as session:
+        job = session.get(Job, job_id)
+        input_keys = job.input_keys
+        options = dict(job.options)
+
+    pdf_key = input_keys[0]
+    sig_key = input_keys[1] if len(input_keys) > 1 else None
+
+    page_num = int(options.get("page", 1)) - 1
+    x_pct = float(options.get("x", 60))
+    y_pct = float(options.get("y", 85))
+    w_pct = float(options.get("width", 25))
+    h_pct = float(options.get("height", 8))
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pdf_path = os.path.join(tmpdir, "input.pdf")
+        storage.download_to_temp(pdf_key, pdf_path)
+
+        sig_path = None
+        if sig_key:
+            sig_path = os.path.join(tmpdir, "signature.png")
+            storage.download_to_temp(sig_key, sig_path)
+
+        self.update_job(job_id, progress=30)
+
+        doc = fitz.open(pdf_path)
+        page_idx = min(page_num, len(doc) - 1)
+        page = doc[page_idx]
+        pw, ph = page.rect.width, page.rect.height
+
+        x0 = pw * x_pct / 100
+        y0 = ph * y_pct / 100
+        x1 = x0 + pw * w_pct / 100
+        y1 = y0 + ph * h_pct / 100
+        rect = fitz.Rect(x0, y0, x1, y1)
+
+        if sig_path:
+            page.insert_image(rect, filename=sig_path)
+        else:
+            page.draw_rect(rect, color=(0, 0, 0), width=0.5)
+            page.insert_text(
+                fitz.Point(x0 + 4, y0 + (y1 - y0) / 2 + 4),
+                "Signed",
+                fontsize=min(12, (y1 - y0) * 0.6),
+                color=(0, 0.4, 0),
+            )
+
+        self.update_job(job_id, progress=70)
+
+        output_path = os.path.join(tmpdir, "signed.pdf")
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+
+        output_key = f"results/{job_id}/signed.pdf"
+        storage.upload_from_temp(output_path, output_key)
+
+    with SyncSession() as session:
+        job = session.get(Job, job_id)
+        job.status = JobStatus.COMPLETED
+        job.output_key = output_key
+        job.progress = 100
+        job.options = {**options, "output_filename": "signed.pdf"}
+        session.commit()
+
+    return output_key
+
+
+# ── Fill PDF Form ──────────────────────────────────────────────────────────────
+# options: {"fields": {"FieldName": "value", ...}}
+
+@celery_app.task(
+    bind=True, base=PDFBaseTask,
+    name="app.workers.tasks.convert.fill_form_task",
+    max_retries=1, soft_time_limit=120,
+)
+def fill_form_task(self, job_id: str):
+    self.update_job(job_id, status=JobStatus.PROCESSING, progress=10)
+
+    with SyncSession() as session:
+        job = session.get(Job, job_id)
+        input_key = job.input_keys[0]
+        options = dict(job.options)
+
+    fields = options.get("fields", {})
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "input.pdf")
+        storage.download_to_temp(input_key, input_path)
+        self.update_job(job_id, progress=30)
+
+        doc = fitz.open(input_path)
+        filled = 0
+        for page in doc:
+            for widget in page.widgets():
+                if widget.field_name in fields:
+                    val = fields[widget.field_name]
+                    if widget.field_type == fitz.PDF_WIDGET_TYPE_CHECKBOX:
+                        widget.field_value = bool(val)
+                    elif widget.field_type == fitz.PDF_WIDGET_TYPE_RADIOBUTTON:
+                        widget.field_value = str(val)
+                    else:
+                        widget.field_value = str(val)
+                    widget.update()
+                    filled += 1
+
+        self.update_job(job_id, progress=70)
+
+        output_path = os.path.join(tmpdir, "filled.pdf")
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+
+        output_key = f"results/{job_id}/filled.pdf"
+        storage.upload_from_temp(output_path, output_key)
+
+    with SyncSession() as session:
+        job = session.get(Job, job_id)
+        job.status = JobStatus.COMPLETED
+        job.output_key = output_key
+        job.progress = 100
+        job.options = {**options, "output_filename": "filled.pdf", "fields_filled": filled}
+        session.commit()
+
+    return output_key
+
+
+# ── PDF → Markdown ─────────────────────────────────────────────────────────────
+
+@celery_app.task(
+    bind=True, base=PDFBaseTask,
+    name="app.workers.tasks.convert.pdf_to_markdown_task",
+    max_retries=1, soft_time_limit=300,
+)
+def pdf_to_markdown_task(self, job_id: str):
+    self.update_job(job_id, status=JobStatus.PROCESSING, progress=5)
+
+    with SyncSession() as session:
+        job = session.get(Job, job_id)
+        input_key = job.input_keys[0]
+        options = dict(job.options)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "input.pdf")
+        storage.download_to_temp(input_key, input_path)
+        self.update_job(job_id, progress=15)
+
+        import pdfplumber
+
+        lines = []
+        with pdfplumber.open(input_path) as pdf:
+            total = len(pdf.pages)
+            for i, page in enumerate(pdf.pages):
+                if total > 1:
+                    lines.append(f"\n## Page {i + 1}\n")
+
+                tables = page.extract_tables()
+                if tables:
+                    for table in tables:
+                        if not table or not table[0]:
+                            continue
+                        header = [str(c or "").strip() for c in table[0]]
+                        lines.append("| " + " | ".join(header) + " |")
+                        lines.append("| " + " | ".join(["---"] * len(header)) + " |")
+                        for row in table[1:]:
+                            lines.append("| " + " | ".join(str(c or "").strip() for c in row) + " |")
+                        lines.append("")
+
+                text = page.extract_text() or ""
+                for line in text.split("\n"):
+                    stripped = line.strip()
+                    if not stripped:
+                        continue
+                    if len(stripped) < 80 and stripped.isupper():
+                        lines.append(f"\n### {stripped.title()}\n")
+                    else:
+                        lines.append(stripped)
+                lines.append("")
+                self.update_job(job_id, progress=15 + int((i + 1) / total * 75))
+
+        markdown = "\n".join(lines).strip()
+        output_path = os.path.join(tmpdir, "document.md")
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(markdown)
+
+        output_key = f"results/{job_id}/document.md"
+        storage.upload_from_temp(output_path, output_key, content_type="text/markdown")
+
+    with SyncSession() as session:
+        job = session.get(Job, job_id)
+        job.status = JobStatus.COMPLETED
+        job.output_key = output_key
+        job.progress = 100
+        job.options = {**options, "output_filename": "document.md"}
+        session.commit()
+
+    return output_key
