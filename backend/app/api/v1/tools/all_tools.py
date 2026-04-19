@@ -684,6 +684,7 @@ class CompareDocsRequest(BaseModel):
     input_key_b: str
     name_a: str = "Document A"
     name_b: str = "Document B"
+    ignore_whitespace: bool = False
 
 
 @router.post("/compare-docs", response_model=JobResponse, status_code=202)
@@ -692,7 +693,8 @@ async def compare_docs(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user_optional),
 ):
-    opts = {"name_a": body.name_a, "name_b": body.name_b}
+    opts = {"name_a": body.name_a, "name_b": body.name_b,
+            "ignore_whitespace": body.ignore_whitespace}
     job = make_job(ToolType.COMPARE_DOCS, [body.input_key_a, body.input_key_b], opts,
                    current_user.id if current_user else None)
     db.add(job); await db.commit(); await db.refresh(job)

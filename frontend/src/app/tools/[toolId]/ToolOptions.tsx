@@ -275,20 +275,29 @@ export function ToolOptions({ toolId, options, onChange }: Props) {
   if (toolId === "compare-docs") return (
     <Card>
       <p className="text-xs text-[#9aa0a6] -mt-1">
-        Upload exactly 2 files. The comparison report will highlight additions and deletions between them.
+        Upload 2 files (PDF, Word, or PowerPoint). The viewer highlights word-level insertions and deletions side-by-side.
       </p>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls}>Label for file 1</label>
+          <label className={labelCls}>Label — File 1 (Original)</label>
           <input type="text" className={inputCls} placeholder="Original"
             onChange={(e) => set("name_a", e.target.value)} />
         </div>
         <div>
-          <label className={labelCls}>Label for file 2</label>
+          <label className={labelCls}>Label — File 2 (Revised)</label>
           <input type="text" className={inputCls} placeholder="Revised"
             onChange={(e) => set("name_b", e.target.value)} />
         </div>
       </div>
+      <label className="flex items-center gap-3 cursor-pointer select-none">
+        <div className={`relative w-10 h-6 rounded-full transition-colors
+          ${options.ignore_whitespace ? "bg-[#1a73e8]" : "bg-[#dadce0]"}`}
+          onClick={() => set("ignore_whitespace", !options.ignore_whitespace)}>
+          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform
+            ${options.ignore_whitespace ? "translate-x-5" : "translate-x-1"}`} />
+        </div>
+        <span className="text-sm text-[#202124]">Ignore whitespace & formatting changes</span>
+      </label>
     </Card>
   );
 

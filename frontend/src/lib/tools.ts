@@ -311,14 +311,18 @@ export const TOOLS: Tool[] = [
   {
     id: "compare-docs",
     name: "Compare Documents",
-    description: "Compare two PDFs or Word docs and highlight differences",
+    description: "Side-by-side word-level diff for PDF, Word & PowerPoint",
     icon: "/icons/compare-docs.svg",
     color: "text-[#005d5d]",
     bgLight: "bg-[#d9fbfb]",
     tabs: ["all", "edit"],
-    accept: { "application/pdf": [".pdf"],
-              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
-              "application/msword": [".doc"] },
+    accept: {
+      "application/pdf": [".pdf"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "application/msword": [".doc"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+      "application/vnd.ms-powerpoint": [".ppt"],
+    },
     multiple: true,
   },
 
