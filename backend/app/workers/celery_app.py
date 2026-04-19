@@ -21,6 +21,7 @@ celery_app = Celery(
         "app.workers.tasks.ai_tasks",
         "app.workers.tasks.page_ops",
         "app.workers.tasks.cleanup",
+        "app.workers.tasks.compare",
     ],
 )
 
