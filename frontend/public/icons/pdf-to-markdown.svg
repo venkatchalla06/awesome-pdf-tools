@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect x="4" y="3" width="24" height="26" rx="2" fill="#f6f2ff" stroke="#8a3ffc" stroke-width="1.5"/>
+  <text x="7" y="14" font-family="monospace" font-size="7" fill="#8a3ffc" font-weight="bold"># H1</text>
+  <text x="7" y="20" font-family="monospace" font-size="5.5" fill="#8a3ffc">## H2</text>
+  <text x="7" y="26" font-family="monospace" font-size="5" fill="#8a3ffc">- list item</text>
+</svg>
