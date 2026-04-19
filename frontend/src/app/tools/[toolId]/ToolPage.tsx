@@ -74,9 +74,18 @@ export function ToolPage({ tool }: Props) {
       const single = ["split","compress","rotate","watermark","protect","unlock",
                       "page-numbers","ocr","pdf-to-jpg","pdf-to-word","word-to-pdf","summarize","translate",
                       "remove-pages","extract-pages","organize","repair","crop","redact","pdf-to-pdfa",
-                      "pptx-to-pdf","xlsx-to-pdf","html-to-pdf","pdf-to-pptx"];
-      if (single.includes(tool.id)) body.input_key = files[0].s3Key;
-      else body.input_keys = files.map((f) => f.s3Key);
+                      "pptx-to-pdf","xlsx-to-pdf","html-to-pdf","pdf-to-pptx",
+                      "pdf-to-xlsx","sign-pdf","fill-form","pdf-to-markdown"];
+      if (tool.id === "compare-docs") {
+        body.input_key_a = files[0].s3Key;
+        body.input_key_b = files[1]?.s3Key ?? files[0].s3Key;
+        body.name_a = files[0].filename;
+        body.name_b = files[1]?.filename ?? files[0].filename;
+      } else if (single.includes(tool.id)) {
+        body.input_key = files[0].s3Key;
+      } else {
+        body.input_keys = files.map((f) => f.s3Key);
+      }
       const result = await api.post(`/tools/${tool.id}`, body);
       setJobId(result.id);
     } catch (e) {
@@ -87,7 +96,7 @@ export function ToolPage({ tool }: Props) {
   function reset() { setFiles([]); setJobId(null); setSubmitError(null); setOptions({}); }
 
   const canSubmit = files.length > 0 && !uploading &&
-    (tool.id === "merge" ? files.length >= 2 : true);
+    (tool.id === "merge" || tool.id === "compare-docs" ? files.length >= 2 : true);
 
   return (
     <ToolLayout title={tool.name} description={tool.description}

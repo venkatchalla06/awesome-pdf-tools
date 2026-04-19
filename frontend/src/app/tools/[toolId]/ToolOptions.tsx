@@ -272,6 +272,26 @@ export function ToolOptions({ toolId, options, onChange }: Props) {
     </Card>
   );
 
+  if (toolId === "compare-docs") return (
+    <Card>
+      <p className="text-xs text-[#9aa0a6] -mt-1">
+        Upload exactly 2 files. The comparison report will highlight additions and deletions between them.
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={labelCls}>Label for file 1</label>
+          <input type="text" className={inputCls} placeholder="Original"
+            onChange={(e) => set("name_a", e.target.value)} />
+        </div>
+        <div>
+          <label className={labelCls}>Label for file 2</label>
+          <input type="text" className={inputCls} placeholder="Revised"
+            onChange={(e) => set("name_b", e.target.value)} />
+        </div>
+      </div>
+    </Card>
+  );
+
   if (toolId === "pdf-to-word") return (
     <Card>
       <label className={labelCls}>Word version</label>

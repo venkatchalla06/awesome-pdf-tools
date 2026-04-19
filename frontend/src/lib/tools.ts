@@ -308,6 +308,20 @@ export const TOOLS: Tool[] = [
     accept: { "application/pdf": [".pdf"] },
   },
 
+  {
+    id: "compare-docs",
+    name: "Compare Documents",
+    description: "Compare two PDFs or Word docs and highlight differences",
+    icon: "/icons/compare-docs.svg",
+    color: "text-[#005d5d]",
+    bgLight: "bg-[#d9fbfb]",
+    tabs: ["all", "edit"],
+    accept: { "application/pdf": [".pdf"],
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+              "application/msword": [".doc"] },
+    multiple: true,
+  },
+
   // ── Security ───────────────────────────────────────────────────────────────
   {
     id: "protect",

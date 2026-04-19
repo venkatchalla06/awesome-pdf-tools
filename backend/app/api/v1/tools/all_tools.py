@@ -675,3 +675,27 @@ async def html_to_pdf(
     from app.workers.tasks.convert import html_to_pdf_task
     html_to_pdf_task.apply_async(args=[str(job.id)], task_id=str(job.id))
     return job
+
+
+# ── Compare Documents ──────────────────────────────────────────────────────────
+
+class CompareDocsRequest(BaseModel):
+    input_key_a: str
+    input_key_b: str
+    name_a: str = "Document A"
+    name_b: str = "Document B"
+
+
+@router.post("/compare-docs", response_model=JobResponse, status_code=202)
+async def compare_docs(
+    body: CompareDocsRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
+):
+    opts = {"name_a": body.name_a, "name_b": body.name_b}
+    job = make_job(ToolType.COMPARE_DOCS, [body.input_key_a, body.input_key_b], opts,
+                   current_user.id if current_user else None)
+    db.add(job); await db.commit(); await db.refresh(job)
+    from app.workers.tasks.compare import compare_docs_task
+    compare_docs_task.apply_async(args=[str(job.id)], task_id=str(job.id))
+    return job

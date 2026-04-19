@@ -46,6 +46,7 @@ class ToolType(str, enum.Enum):
     SIGN_PDF = "sign_pdf"
     FILL_FORM = "fill_form"
     PDF_TO_MARKDOWN = "pdf_to_markdown"
+    COMPARE_DOCS = "compare_docs"
 
 
 class Job(Base):
