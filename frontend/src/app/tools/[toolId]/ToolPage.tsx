@@ -77,10 +77,10 @@ export function ToolPage({ tool }: Props) {
                       "pptx-to-pdf","xlsx-to-pdf","html-to-pdf","pdf-to-pptx",
                       "pdf-to-xlsx","sign-pdf","fill-form","pdf-to-markdown"];
       if (tool.id === "compare-docs") {
-        body.input_key_a = files[0].s3Key;
-        body.input_key_b = files[1]?.s3Key ?? files[0].s3Key;
-        body.name_a = files[0].filename;
-        body.name_b = files[1]?.filename ?? files[0].filename;
+        body.input_keys = [files[0].s3Key, files[1].s3Key];
+        body.name_a = options.name_a || files[0].filename;
+        body.name_b = options.name_b || files[1].filename;
+        body.ignore_whitespace = options.ignore_whitespace ?? false;
       } else if (single.includes(tool.id)) {
         body.input_key = files[0].s3Key;
       } else {
@@ -165,7 +165,55 @@ export function ToolPage({ tool }: Props) {
       )}
 
       {/* Step 3: Done */}
-      {job.status === "completed" && job.downloadUrl && (
+      {job.status === "completed" && job.downloadUrl && tool.id === "compare-docs" && (
+        <div className="space-y-4 animate-fade-up">
+          <div className="bg-white rounded-2xl border border-[#e8eaed] p-6"
+            style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-[#e6f4ea] rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-[#1e8e3e]" fill="none" viewBox="0 0 24 24">
+                  <path stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" d="M5 13l4 4L19 7"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[#202124]">Comparison ready</p>
+                <p className="text-xs text-[#5f6368] mt-0.5">
+                  {job.options?.pages_changed != null ? `${job.options.pages_changed} page(s) changed` : ""}
+                  {job.options?.insertions != null ? ` · +${job.options.insertions} insertions` : ""}
+                  {job.options?.deletions != null ? ` · −${job.options.deletions} deletions` : ""}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <a href={job.downloadUrl} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 h-11 px-6 rounded-full text-sm font-medium text-white transition-all"
+                style={{ background: "linear-gradient(135deg,#1a73e8,#4285f4)", boxShadow: "0 2px 8px rgba(26,115,232,.4)" }}>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
+                </svg>
+                Open Comparison Viewer
+              </a>
+              <a href={job.downloadUrl} download="comparison.html"
+                className="flex items-center gap-2 h-11 px-5 rounded-full text-sm font-medium text-[#1a73e8] border border-[#1a73e8] hover:bg-[#e8f0fe] transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M12 3v13M5 14l7 7 7-7"/>
+                </svg>
+                Download HTML
+              </a>
+            </div>
+          </div>
+          <button onClick={reset}
+            className="flex items-center gap-2 h-10 px-5 rounded-full text-sm font-medium
+                       text-[#1a73e8] hover:bg-[#e8f0fe] transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M4 4v5h5M20 20v-5h-5M4 9a9 9 0 0115 0M20 15a9 9 0 01-15 0"/>
+            </svg>
+            Compare another pair
+          </button>
+        </div>
+      )}
+
+      {job.status === "completed" && job.downloadUrl && tool.id !== "compare-docs" && (
         <div className="space-y-4 animate-fade-up">
           <DownloadButton
             url={job.downloadUrl}

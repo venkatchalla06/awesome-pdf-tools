@@ -307,53 +307,11 @@ async def word_to_pdf(
     return job
 
 
-# ── AI Summarize ───────────────────────────────────────────────────────────
+# ── AI Summarize (disabled) ────────────────────────────────────────────────
+# @router.post("/summarize", ...)  # not required now
 
-class SummarizeRequest(BaseModel):
-    input_key: str
-    style: str = Field("bullet", pattern="^(bullet|paragraph|executive)$")
-    output_language: str = "English"
-
-
-@router.post("/summarize", response_model=JobResponse, status_code=202)
-async def summarize_pdf(
-    body: SummarizeRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_user_optional),
-):
-    job = make_job(
-        ToolType.SUMMARIZE, [body.input_key],
-        {"style": body.style, "output_language": body.output_language},
-        current_user.id if current_user else None,
-    )
-    db.add(job); await db.commit(); await db.refresh(job)
-    from app.workers.tasks.ai_tasks import summarize_task
-    summarize_task.apply_async(args=[str(job.id)], task_id=str(job.id))
-    return job
-
-
-# ── AI Translate ───────────────────────────────────────────────────────────
-
-class TranslateRequest(BaseModel):
-    input_key: str
-    target_language: str = "Spanish"
-
-
-@router.post("/translate", response_model=JobResponse, status_code=202)
-async def translate_pdf(
-    body: TranslateRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_user_optional),
-):
-    job = make_job(
-        ToolType.TRANSLATE, [body.input_key],
-        {"target_language": body.target_language},
-        current_user.id if current_user else None,
-    )
-    db.add(job); await db.commit(); await db.refresh(job)
-    from app.workers.tasks.ai_tasks import translate_task
-    translate_task.apply_async(args=[str(job.id)], task_id=str(job.id))
-    return job
+# ── AI Translate (disabled) ────────────────────────────────────────────────
+# @router.post("/translate", ...)  # not required now
 
 
 # ── Remove Pages ───────────────────────────────────────────────────────────────
@@ -677,13 +635,12 @@ async def html_to_pdf(
     return job
 
 
-# ── Compare Documents ──────────────────────────────────────────────────────────
+# ── Compare Documents ──────────────────────────────────────────────────────
 
 class CompareDocsRequest(BaseModel):
-    input_key_a: str
-    input_key_b: str
-    name_a: str = "Document A"
-    name_b: str = "Document B"
+    input_keys: List[str] = Field(..., min_length=2, max_length=2)
+    name_a: Optional[str] = None
+    name_b: Optional[str] = None
     ignore_whitespace: bool = False
 
 
@@ -693,9 +650,12 @@ async def compare_docs(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user_optional),
 ):
-    opts = {"name_a": body.name_a, "name_b": body.name_b,
-            "ignore_whitespace": body.ignore_whitespace}
-    job = make_job(ToolType.COMPARE_DOCS, [body.input_key_a, body.input_key_b], opts,
+    options = {
+        "name_a": body.name_a or "Document A",
+        "name_b": body.name_b or "Document B",
+        "ignore_whitespace": body.ignore_whitespace,
+    }
+    job = make_job(ToolType.COMPARE_DOCS, body.input_keys, options,
                    current_user.id if current_user else None)
     db.add(job); await db.commit(); await db.refresh(job)
     from app.workers.tasks.compare import compare_docs_task

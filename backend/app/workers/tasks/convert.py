@@ -12,6 +12,43 @@ from app.db.models.job import Job, JobStatus, ToolType
 from app.services.storage import storage
 
 
+def _is_image_pdf(pdf_path: str) -> bool:
+    """Return True if the PDF has no selectable text (scanned/image-based)."""
+    doc = fitz.open(pdf_path)
+    has_text = any(page.get_text().strip() for page in doc)
+    doc.close()
+    return not has_text
+
+
+def _ocr_pdf(input_path: str, output_path: str, language: str = "eng"):
+    """Run OCR on a PDF, producing a searchable PDF at output_path."""
+    try:
+        import ocrmypdf
+        ocrmypdf.ocr(
+            input_path, output_path,
+            language=language,
+            skip_text=True,
+            optimize=1,
+            progress_bar=False,
+            invalidate_digital_signatures=True,
+        )
+    except (ImportError, TypeError, AttributeError):
+        import pytesseract
+        doc = fitz.open(input_path)
+        out_doc = fitz.open()
+        for page in doc:
+            mat = fitz.Matrix(300 / 72, 300 / 72)
+            pix = page.get_pixmap(matrix=mat, alpha=False)
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            text = pytesseract.image_to_string(img, lang=language)
+            new_page = out_doc.new_page(width=page.rect.width, height=page.rect.height)
+            new_page.insert_image(new_page.rect, pixmap=pix)
+            new_page.insert_textbox(new_page.rect, text, fontsize=1, color=(1, 1, 1), fill_opacity=0)
+        doc.close()
+        out_doc.save(output_path, garbage=4, deflate=True)
+        out_doc.close()
+
+
 def libreoffice_convert(input_path: str, output_dir: str, fmt: str = "pdf") -> str:
     """Convert using LibreOffice headless. Returns path of output file."""
     before = set(os.listdir(output_dir))
@@ -206,11 +243,30 @@ def pdf_to_word_task(self, job_id: str):
         storage.download_to_temp(input_key, input_path)
         self.update_job(job_id, progress=20)
 
-        # Step 1 — PDF → DOCX (pdf2docx gives best layout fidelity)
-        from pdf2docx import Converter
-        cv = Converter(input_path)
-        cv.convert(docx_path, start=0, end=None)
-        cv.close()
+        # Step 1 — detect image-based PDF
+        if _is_image_pdf(input_path):
+            # OCR first, then build DOCX from extracted text (pdf2docx can't read OCR layers)
+            ocr_path = os.path.join(tmpdir, "input_ocr.pdf")
+            _ocr_pdf(input_path, ocr_path, language=options.get("language", "eng"))
+            self.update_job(job_id, progress=40)
+            import pdfplumber
+            from docx import Document as DocxDocument
+            from docx.shared import Pt
+            worddoc = DocxDocument()
+            with pdfplumber.open(ocr_path) as pdf:
+                for i, page in enumerate(pdf.pages):
+                    if i > 0:
+                        worddoc.add_page_break()
+                    text = page.extract_text() or ""
+                    for line in text.split("\n"):
+                        worddoc.add_paragraph(line)
+            worddoc.save(docx_path)
+        else:
+            # Step 1 — PDF → DOCX (pdf2docx gives best layout fidelity for digital PDFs)
+            from pdf2docx import Converter
+            cv = Converter(input_path)
+            cv.convert(docx_path, start=0, end=None)
+            cv.close()
         self.update_job(job_id, progress=60)
 
         # Step 2 — DOCX → DOC via LibreOffice (Word 2003 only)
@@ -403,7 +459,17 @@ def pdf_to_pptx_task(self, job_id: str):
         input_path = os.path.join(tmpdir, "input.pdf")
         storage.download_to_temp(input_key, input_path)
 
+        # OCR image-based PDFs so slides carry selectable text
+        if _is_image_pdf(input_path):
+            ocr_path = os.path.join(tmpdir, "input_ocr.pdf")
+            _ocr_pdf(input_path, ocr_path, language=options.get("language", "eng"))
+            input_path = ocr_path
+        self.update_job(job_id, progress=20)
+
         from pptx import Presentation
+        from pptx.util import Pt
+        from pptx.dml.color import RGBColor
+        import pytesseract
 
         doc = fitz.open(input_path)
         total = len(doc)
@@ -423,7 +489,19 @@ def pdf_to_pptx_task(self, job_id: str):
             slide = prs.slides.add_slide(prs.slide_layouts[6])
             slide.shapes.add_picture(img_path, 0, 0, slide_w, slide_h)
 
-            self.update_job(job_id, progress=5 + int((i + 1) / total * 85))
+            # Add invisible text box so slide text is searchable/copyable
+            page_text = page.get_text().strip()
+            if page_text:
+                txBox = slide.shapes.add_textbox(0, 0, slide_w, slide_h)
+                tf = txBox.text_frame
+                tf.word_wrap = True
+                p = tf.paragraphs[0]
+                p.text = page_text
+                run = p.runs[0]
+                run.font.size = Pt(1)
+                run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+
+            self.update_job(job_id, progress=20 + int((i + 1) / total * 70))
 
         doc.close()
 
@@ -466,6 +544,13 @@ def pdf_to_xlsx_task(self, job_id: str):
         input_path = os.path.join(tmpdir, "input.pdf")
         storage.download_to_temp(input_key, input_path)
         self.update_job(job_id, progress=15)
+
+        # OCR image-based PDFs so pdfplumber can extract text
+        if _is_image_pdf(input_path):
+            ocr_path = os.path.join(tmpdir, "input_ocr.pdf")
+            _ocr_pdf(input_path, ocr_path, language=options.get("language", "eng"))
+            input_path = ocr_path
+        self.update_job(job_id, progress=30)
 
         import pdfplumber
         import openpyxl
@@ -668,6 +753,13 @@ def pdf_to_markdown_task(self, job_id: str):
         input_path = os.path.join(tmpdir, "input.pdf")
         storage.download_to_temp(input_key, input_path)
         self.update_job(job_id, progress=15)
+
+        # OCR image-based PDFs so pdfplumber can extract text
+        if _is_image_pdf(input_path):
+            ocr_path = os.path.join(tmpdir, "input_ocr.pdf")
+            _ocr_pdf(input_path, ocr_path, language=options.get("language", "eng"))
+            input_path = ocr_path
+        self.update_job(job_id, progress=30)
 
         import pdfplumber
 

@@ -308,23 +308,7 @@ export const TOOLS: Tool[] = [
     accept: { "application/pdf": [".pdf"] },
   },
 
-  {
-    id: "compare-docs",
-    name: "Compare Documents",
-    description: "Side-by-side word-level diff for PDF, Word & PowerPoint",
-    icon: "/icons/compare-docs.svg",
-    color: "text-[#005d5d]",
-    bgLight: "bg-[#d9fbfb]",
-    tabs: ["all", "edit"],
-    accept: {
-      "application/pdf": [".pdf"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
-      "application/msword": [".doc"],
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
-      "application/vnd.ms-powerpoint": [".ppt"],
-    },
-    multiple: true,
-  },
+  // compare-docs disabled (not required now)
 
   // ── Security ───────────────────────────────────────────────────────────────
   {
@@ -359,24 +343,24 @@ export const TOOLS: Tool[] = [
     tabs: ["all", "ai", "edit"],
     accept: { "application/pdf": [".pdf"] },
   },
+  // summarize disabled (not required now)
+  // translate disabled (not required now)
+
+  // ── Compare ────────────────────────────────────────────────────────────────
   {
-    id: "summarize",
-    name: "AI Summarize",
-    description: "Get an instant AI summary of any PDF",
-    icon: "/icons/summarize.svg",
-    color: "text-[#ee5396]",
-    bgLight: "bg-[#fff0f7]",
-    tabs: ["all", "ai"],
-    accept: { "application/pdf": [".pdf"] },
-  },
-  {
-    id: "translate",
-    name: "AI Translate",
-    description: "Translate PDF content to any language",
-    icon: "/icons/translate.svg",
-    color: "text-[#ee5396]",
-    bgLight: "bg-[#fff0f7]",
-    tabs: ["all", "ai"],
-    accept: { "application/pdf": [".pdf"] },
+    id: "compare-docs",
+    name: "Compare Documents",
+    description: "Compare two PDFs or Office files side-by-side with word-level diff",
+    icon: "/icons/compare-docs.svg",
+    color: "text-[#1a73e8]",
+    bgLight: "bg-[#e8f0fe]",
+    tabs: ["all", "edit"],
+    accept: {
+      "application/pdf": [".pdf"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "application/msword": [".doc"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+    },
+    multiple: true,
   },
 ];
