@@ -34,7 +34,7 @@ services:
     name: pdf-toolkit-ui
     runtime: node
     rootDir: frontend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npm run build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static
     startCommand: node .next/standalone/server.js
     plan: free
     envVars:
