@@ -6,9 +6,9 @@ from app.config import get_settings
 settings = get_settings()
 
 RATE_LIMITS = {
-    "free":       (10, 60),
-    "pro":        (100, 60),
-    "enterprise": (1000, 60),
+    "free":       (200, 60),
+    "pro":        (500, 60),
+    "enterprise": (2000, 60),
 }
 
 # Sync redis client for middleware (Starlette middleware is sync-friendly)
