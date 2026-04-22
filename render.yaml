@@ -3,8 +3,8 @@ services:
   - type: web
     name: pdf-toolkit-api
     runtime: python
-    rootDir: .
-    buildCommand: bash render-build.sh
+    rootDir: backend
+    buildCommand: bash ../render-build.sh
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     plan: free
     envVars:
@@ -24,6 +24,14 @@ services:
         value: /tmp/pdf-toolkit/uploads
       - key: ALLOWED_HOSTS
         value: '["https://pdf-toolkit-ui.onrender.com","http://localhost:3000"]'
+      - key: STORAGE_MODE
+        value: local
+      - key: LOCAL_UPLOAD_DIR
+        value: /tmp/pdfkit/uploads
+      - key: API_BASE_URL
+        value: https://pdf-toolkit-api.onrender.com
+      - key: S3_ENDPOINT_URL
+        value: ""
       - key: CLAMAV_HOST
         value: ""
       - key: DEBUG

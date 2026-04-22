@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -27,7 +28,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://yourdomain.com"],
+    allow_origins=["http://localhost:3000", "https://pdf-toolkit-ui.onrender.com", os.getenv("FRONTEND_ORIGIN", "")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
