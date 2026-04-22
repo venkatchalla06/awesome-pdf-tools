@@ -122,6 +122,19 @@ export function ToolPage({ tool }: Props) {
                 onMoveUp={tool.multiple ? (i) => setFiles((p) => { const a=[...p]; [a[i-1],a[i]]=[a[i],a[i-1]]; return a; }) : undefined}
                 onMoveDown={tool.multiple ? (i) => setFiles((p) => { const a=[...p]; [a[i],a[i+1]]=[a[i+1],a[i]]; return a; }) : undefined}
               />
+              {/* For multi-file tools show add more button */}
+              {tool.multiple && (
+                <DropZone accept={tool.accept} multiple={tool.multiple}
+                  label="Add more files" onFilesSelected={handleFilesSelected} />
+              )}
+              {tool.id === "merge" && files.length < 2 && (
+                <p className="text-sm text-[#f29900] font-medium flex items-center gap-2">
+                  <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                  </svg>
+                  Please add at least one more PDF to merge
+                </p>
+              )}
               <ToolOptions toolId={tool.id} options={options} onChange={setOptions} />
             </>
           )}
