@@ -3,7 +3,8 @@
  */
 import React, { useState } from 'react'
 import { MessageSquare, ChevronDown, ChevronUp, Check, Filter } from 'lucide-react'
-import type { NoteEntry, Notes } from '../lib/api'
+export type NoteEntry = { note: string; tag: string }
+export type Notes = Record<string, NoteEntry>
 
 type FilterType = 'all' | 'insert' | 'delete' | 'replace' | 'move_from'
 

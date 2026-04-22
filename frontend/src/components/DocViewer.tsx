@@ -6,7 +6,10 @@ import React, {
   forwardRef, useImperativeHandle, useLayoutEffect,
   useRef, useEffect, useMemo,
 } from 'react'
-import type { Span } from '../lib/api'
+export type Span = {
+  type: 'equal' | 'insert' | 'delete' | 'replace' | 'move_from' | 'move_to'
+  text: string; offset: number; length: number; context?: string; move_id?: number
+}
 
 export interface DocViewerHandle {
   scrollTo: (top: number) => void
