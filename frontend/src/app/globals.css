@@ -53,3 +53,38 @@ select {
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-up { animation: fadeUp 0.3s cubic-bezier(0.2,0,0,1) both; }
+
+/* ── DocCompare Pro styles ────────────────────────────────────────────── */
+.doc-page {
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06);
+  border-radius: 2px;
+  padding: 52px 56px;
+  margin: 16px auto;
+  width: 780px;
+  max-width: 100%;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 13.5px;
+  line-height: 1.85;
+  color: #1a1a1a;
+  word-break: break-word;
+  white-space: pre-wrap;
+  position: relative;
+}
+.diff-delete { background: #ffd6d6; color: #c0392b; text-decoration: line-through; text-decoration-color: #c0392b; }
+.diff-insert { background: #d4edda; color: #1a6b2e; }
+.diff-replace { background: #fff3cd; color: #856404; }
+.diff-move-from { background: #ead5f5; color: #6c3483; text-decoration: line-through; text-decoration-color: #6c3483; }
+.diff-move-to { background: #d1ecf1; color: #0c5460; border-bottom: 2px dashed #17a2b8; }
+.change-active { outline: 2px solid #2563eb; outline-offset: 1px; border-radius: 2px; }
+.pane-scroll { overflow-y: auto; overflow-x: hidden; height: 100%; background: #e8ecf0; }
+.pane-scroll::-webkit-scrollbar { width: 14px; }
+.pane-scroll::-webkit-scrollbar-track { background: #d0d5db; }
+.pane-scroll::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 7px; border: 3px solid #d0d5db; }
+.marker-rail { position: absolute; right: 0; top: 0; width: 14px; pointer-events: none; z-index: 20; background: #d0d5db; }
+.filter-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1.5px solid transparent; transition: all .15s; user-select: none; }
+.filter-pill.active { border-color: currentColor; }
+.filter-pill:hover:not(.active) { opacity: .75; }
+.toolbar-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 5px; font-size: 12.5px; font-weight: 500; cursor: pointer; transition: background .12s; color: #f1f5f9; background: transparent; border: none; white-space: nowrap; }
+.toolbar-btn:hover { background: rgba(255,255,255,0.12); }
+.toolbar-btn:disabled { opacity:.35; cursor:default; }

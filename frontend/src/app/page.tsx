@@ -139,7 +139,7 @@ export default function Home() {
           {visible.map((tool) => (
             <Link
               key={tool.id}
-              href={`/tools/${tool.id}`}
+              href={tool.id === "compare-docs" ? "/compare" : `/tools/${tool.id}`}
               className="group flex flex-col items-center text-center gap-3 p-4 sm:p-5 bg-white rounded-2xl
                          border border-[#e8eaed] hover:border-transparent
                          hover:-translate-y-1 transition-all duration-200 cursor-pointer"
