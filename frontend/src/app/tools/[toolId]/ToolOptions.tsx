@@ -39,26 +39,42 @@ function SegmentControl({ keys, labels, active, onSelect }:
 export function ToolOptions({ toolId, options, onChange }: Props) {
   const set = (k: string, v: unknown) => onChange({ ...options, [k]: v });
 
-  if (toolId === "split") return (
-    <Card>
-      <div>
-        <label className={labelCls}>Split mode</label>
-        <select className={inputCls} onChange={(e) => {
-          e.target.value === "every" ? set("every_n_pages", 1) : onChange({});
-        }} defaultValue="each">
-          <option value="each">One file per page</option>
-          <option value="every">Every N pages</option>
-        </select>
-      </div>
-      {options.every_n_pages != null && (
+  if (toolId === "split") {
+    const mode = options.mode || (options.every_n_pages != null ? "every" : "each");
+    return (
+      <Card>
         <div>
-          <label className={labelCls}>Pages per file</label>
-          <input type="number" min={1} defaultValue={1} className={inputCls}
-            onChange={(e) => set("every_n_pages", parseInt(e.target.value))} />
+          <label className={labelCls}>Split mode</label>
+          <select className={inputCls} onChange={(e) => {
+            const val = e.target.value;
+            if (val === "every") onChange({ mode: "every", every_n_pages: 1 });
+            else if (val === "custom") onChange({ mode: "custom", custom_ranges: "" });
+            else onChange({ mode: "each" });
+          }} value={mode as string}>
+            <option value="each">One file per page</option>
+            <option value="every">Every N pages</option>
+            <option value="custom">Custom ranges</option>
+          </select>
         </div>
-      )}
-    </Card>
-  );
+        {mode === "every" && (
+          <div>
+            <label className={labelCls}>Pages per file</label>
+            <input type="number" min={1} defaultValue={options.every_n_pages as number || 1} className={inputCls}
+              onChange={(e) => set("every_n_pages", parseInt(e.target.value) || 1)} />
+          </div>
+        )}
+        {mode === "custom" && (
+          <div>
+            <label className={labelCls}>Custom ranges</label>
+            <input type="text" className={inputCls} placeholder="e.g. 2-10, 12, 15-20"
+              defaultValue={options.custom_ranges as string || ""}
+              onChange={(e) => set("custom_ranges", e.target.value)} />
+            <p className="mt-1.5 text-xs text-[#9aa0a6]">Enter page ranges separated by commas</p>
+          </div>
+        )}
+      </Card>
+    );
+  }
 
   if (toolId === "compress") return (
     <Card>

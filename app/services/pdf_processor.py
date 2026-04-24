@@ -29,26 +29,74 @@ class PDFProcessor:
         
         return output_path
     
-    def split_pdf(self, input_file: str, output_dir: str, pages: List[int] = None) -> List[str]:
-        """Split PDF into individual pages or specific pages"""
+    def split_pdf(self, input_file: str, output_dir: str, mode: str = "each", every_n_pages: int = 1, custom_ranges: str = None) -> List[str]:
+        """Split PDF into individual pages, every N pages, or custom ranges"""
         output_files = []
         
         with open(input_file, 'rb') as file:
             reader = PdfReader(file)
+            total_pages = len(reader.pages)
             
-            if pages:
-                # Extract specific pages
-                for page_num in pages:
-                    if 0 <= page_num < len(reader.pages):
-                        writer = PdfWriter()
+            if mode == "each":
+                for page_num in range(total_pages):
+                    writer = PdfWriter()
+                    writer.add_page(reader.pages[page_num])
+                    output_path = os.path.join(output_dir, f"page_{page_num + 1}.pdf")
+                    with open(output_path, 'wb') as output_file:
+                        writer.write(output_file)
+                    output_files.append(output_path)
+            
+            elif mode == "every":
+                if every_n_pages < 1:
+                    every_n_pages = 1
+                for i in range(0, total_pages, every_n_pages):
+                    writer = PdfWriter()
+                    end_page = min(i + every_n_pages, total_pages)
+                    for page_num in range(i, end_page):
                         writer.add_page(reader.pages[page_num])
-                        output_path = os.path.join(output_dir, f"page_{page_num + 1}.pdf")
-                        with open(output_path, 'wb') as output_file:
-                            writer.write(output_file)
-                        output_files.append(output_path)
-            else:
-                # Extract all pages
-                for page_num in range(len(reader.pages)):
+                    output_path = os.path.join(output_dir, f"pages_{i + 1}_to_{end_page}.pdf")
+                    with open(output_path, 'wb') as output_file:
+                        writer.write(output_file)
+                    output_files.append(output_path)
+            
+            elif mode == "custom":
+                if custom_ranges:
+                    ranges = [r.strip() for r in custom_ranges.split(',') if r.strip()]
+                    for r in ranges:
+                        writer = PdfWriter()
+                        if '-' in r:
+                            parts = r.split('-')
+                            try:
+                                start = max(1, int(parts[0].strip()))
+                                end = min(total_pages, int(parts[1].strip()))
+                                if start <= end:
+                                    for page_num in range(start - 1, end):
+                                        writer.add_page(reader.pages[page_num])
+                                    output_path = os.path.join(output_dir, f"range_{start}_to_{end}.pdf")
+                            except ValueError:
+                                continue
+                        else:
+                            try:
+                                page_num = int(r.strip())
+                                if 1 <= page_num <= total_pages:
+                                    writer.add_page(reader.pages[page_num - 1])
+                                    output_path = os.path.join(output_dir, f"page_{page_num}.pdf")
+                            except ValueError:
+                                continue
+                        
+                        if len(writer.pages) > 0:
+                            base_path = output_path
+                            counter = 1
+                            while os.path.exists(output_path):
+                                output_path = base_path.replace('.pdf', f'_{counter}.pdf')
+                                counter += 1
+                                
+                            with open(output_path, 'wb') as output_file:
+                                writer.write(output_file)
+                            output_files.append(output_path)
+            
+            if not output_files:
+                for page_num in range(total_pages):
                     writer = PdfWriter()
                     writer.add_page(reader.pages[page_num])
                     output_path = os.path.join(output_dir, f"page_{page_num + 1}.pdf")

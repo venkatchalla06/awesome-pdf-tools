@@ -37,6 +37,7 @@ class SplitRequest(BaseModel):
     input_key: str
     ranges: Optional[List[dict]] = None        # [{"start":1,"end":3}]
     every_n_pages: Optional[int] = None
+    custom_ranges: Optional[str] = None        # "1-10, 15, 20-25"
 
 
 @router.post("/split", response_model=JobResponse, status_code=202)
@@ -48,6 +49,20 @@ async def split_pdf(
     options = {}
     if body.ranges:
         options["ranges"] = body.ranges
+    elif body.custom_ranges:
+        # Parse "1-10, 15, 20-25" into [{"start":1, "end":10}, ...]
+        parsed_ranges = []
+        for part in body.custom_ranges.split(','):
+            part = part.strip()
+            if '-' in part:
+                try:
+                    s, e = part.split('-')
+                    parsed_ranges.append({"start": int(s), "end": int(e)})
+                except ValueError: continue
+            elif part.isdigit():
+                parsed_ranges.append({"start": int(part), "end": int(part)})
+        if parsed_ranges:
+            options["ranges"] = parsed_ranges
     elif body.every_n_pages:
         options["every_n_pages"] = body.every_n_pages
 

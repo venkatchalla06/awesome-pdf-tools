@@ -85,12 +85,25 @@ async def get_tool_parameters(tool_id: str):
             "parameters": []
         },
         "split": {
-            "description": "Split PDF into pages",
+            "description": "Split PDF into pages, chunks, or custom ranges",
             "parameters": [
                 {
-                    "name": "pages",
-                    "type": "array",
-                    "description": "Specific pages to extract (leave empty for all pages)",
+                    "name": "mode",
+                    "type": "string",
+                    "description": "Split mode (each, every, custom)",
+                    "required": False,
+                    "default": "each"
+                },
+                {
+                    "name": "every_n_pages",
+                    "type": "integer",
+                    "description": "Pages per file (if mode is every)",
+                    "required": False
+                },
+                {
+                    "name": "custom_ranges",
+                    "type": "string",
+                    "description": "Custom page ranges (if mode is custom)",
                     "required": False
                 }
             ]

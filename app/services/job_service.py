@@ -60,7 +60,18 @@ class JobService:
             elif jtype == "split":
                 out_dir = output_path + "_split"
                 os.makedirs(out_dir, exist_ok=True)
-                processor.split_pdf(input_path, out_dir, params.get("pages"))
+                
+                mode = params.get("mode", "each")
+                if mode == "each" and params.get("every_n_pages"):
+                    mode = "every"
+                
+                processor.split_pdf(
+                    input_file=input_path,
+                    output_dir=out_dir,
+                    mode=mode,
+                    every_n_pages=params.get("every_n_pages", 1),
+                    custom_ranges=params.get("custom_ranges", "")
+                )
                 output_path = out_dir
             elif jtype == "compress":
                 output_path += ".pdf"
